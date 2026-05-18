@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Cuaca Bulanan - Dinamis</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --border: #d1d9e0;
+            --text: #2d3748;
+            --text-light: #5a6c7d;
+            --cerah: #fde047;
+            --cerah-text: #8a6d00;
+            --cerah-bg: #fffbe6;
+            --berawan: #cbd5e1;
+            --berawan-text: #475569;
+            --berawan-bg: #f1f5f9;
+            --gerimis: #93c5fd;
+            --gerimis-text: #1e4e8c;
+            --gerimis-bg: #e8f2ff;
+            --hujan: #60a5fa;
+            --hujan-text: #1a3f6b;
+            --hujan-bg: #dceeff;
+            --accent: #2563eb;
+            --shadow: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #e9eef3, #dce3ea, #eef2f7);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        /* ==================== PRINT STYLES ==================== */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .main-container {
+                box-shadow: none !important;
+                border: 2px solid #000 !important;
+                border-radius: 0 !important;
+                padding: 5mm 5mm 2mm !important;
+                max-width: 100% !important;
+                margin: 0 auto;
+            }
+            .table-wrapper {
+                max-height: none !important;
+                overflow: visible !important;
+                border: none !important;
+            }
+            table {
+                font-size: 5.5pt !important;
+                width: 100% !important;
+                table-layout: fixed !important;
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 0.8mm 0.3mm !important;
+                min-width: 0 !important;
+                border: 0.5px solid #000 !important;
+            }
+            th {
+                background: #f1f5f9 !important;
+                font-weight: 600;
+            }
+            .report-header .title {
+                font-size: 14pt !important;
+            }
+            .report-meta {
+                font-size: 10pt !important;
+            }
+            .legenda {
+                font-size: 7pt !important;
+                margin-top: 2mm !important;
+            }
+            .stats {
+                font-size: 8pt !important;
+                margin-bottom: 2mm !important;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 8mm;
+            }
+        }
+
+        .main-container {
+            max-width: 1450px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 28px 24px 20px;
+            border: 1px solid var(--border);
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 16px;
+            border-bottom: 3px double #cbd5e1;
+        }
+        .report-header .title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #1a202c;
+            text-transform: uppercase;
+        }
+        .report-meta {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        .settings-panel {
+            background: #f0f4f8;
+            border: 1px solid #d1d9e0;
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+        .settings-panel label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+        .settings-panel select,
+        .settings-panel input {
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+
+        .range-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 12px;
+        }
+        .range-panel label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            display: block;
+            margin-bottom: 2px;
+        }
+        .range-panel input,
+        .range-panel select {
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+        .range-panel button {
+            padding: 8px 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+        .range-panel button:hover {
+            background: #1d4ed8;
+        }
+        .btn-danger {
+            background: #ef4444 !important;
+        }
+        .btn-danger:hover {
+            background: #dc2626 !important;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            background: #f1f5f9;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e8ecf1;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 12px;
+            border: 1px solid #d1d9e0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 500;
+            background: #fff;
+            color: #374151;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn.active-tool {
+            background: #1e3a5f;
+            color: #fff;
+            border-color: #1e3a5f;
+            box-shadow: 0 0 0 3px rgba(30,58,95,0.2);
+        }
+        .btn:hover {
+            background: #e2e8f0;
+            border-color: #b0bec5;
+        }
+        .color-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.15);
+        }
+        .color-dot.cerah { background: var(--cerah); }
+        .color-dot.berawan { background: var(--berawan); }
+        .color-dot.gerimis { background: var(--gerimis); }
+        .color-dot.hujan { background: var(--hujan); }
+        .divider {
+            width: 1px;
+            height: 24px;
+            background: #cbd5e1;
+            margin: 0 4px;
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            align-items: center;
+        }
+        .saved-indicator {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #16a34a;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .saved-indicator.show {
+            opacity: 1;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 65vh;
+            border: 1px solid #d1d9e0;
+            border-radius: var(--radius-sm);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 6px 4px;
+            text-align: center;
+            min-width: 32px;
+        }
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #334155;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        td {
+            cursor: pointer;
+            transition: background 0.15s;
+            background: #fdfdfd;
+        }
+        td:hover {
+            filter: brightness(0.96);
+        }
+        td[data-cuaca="C"] { background: var(--cerah-bg); color: var(--cerah-text); font-weight: 600; }
+        td[data-cuaca="B"] { background: var(--berawan-bg); color: var(--berawan-text); font-weight: 600; }
+        td[data-cuaca="G"] { background: var(--gerimis-bg); color: var(--gerimis-text); font-weight: 600; }
+        td[data-cuaca="H"] { background: var(--hujan-bg); color: var(--hujan-text); font-weight: 600; }
+        td.empty { color: #cbd5e1; }
+
+        .legenda {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 14px;
+            font-size: 0.82rem;
+            align-items: center;
+        }
+        .legenda span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="main-container">
+    <div class="report-header">
+        <div class="title">LAPORAN CUACA BULANAN</div>
+        <div class="report-meta">
+            <span id="judulBulan">Bulan: MEI</span>
+            <span id="judulTahun">Tahun: 2026</span>
+        </div>
+    </div>
+
+    <!-- Panel Input Bulan & Tahun -->
+    <div class="settings-panel no-print">
+        <label for="pilihBulan">Bulan:</label>
+        <select id="pilihBulan">
+            <option value="1">Januari</option>
+            <option value="2">Februari</option>
+            <option value="3">Maret</option>
+            <option value="4">April</option>
+            <option value="5" selected>Mei</option>
+            <option value="6">Juni</option>
+            <option value="7">Juli</option>
+            <option value="8">Agustus</option>
+            <option value="9">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+        </select>
+        <label for="inputTahun">Tahun:</label>
+        <input type="number" id="inputTahun" value="2026" min="2000" max="2100" style="width:80px;">
+    </div>
+
+    <!-- Panel Rentang Perjam -->
+    <div class="range-panel no-print">
+        <div>
+            <label for="rangeTanggal">Tanggal</label>
+            <select id="rangeTanggal"></select>
+        </div>
+        <div>
+            <label for="rangeJamMulai">Jam Mulai</label>
+            <select id="rangeJamMulai"></select>
+        </div>
+        <div>
+            <label for="rangeJamSelesai">Jam Selesai</label>
+            <select id="rangeJamSelesai"></select>
+        </div>
+        <div>
+            <label for="rangeCuaca">Cuaca</label>
+            <select id="rangeCuaca">
+                <option value="C">Cerah (C)</option>
+                <option value="B">Berawan (B)</option>
+                <option value="G">Gerimis (G)</option>
+                <option value="H">Hujan (H)</option>
+            </select>
+        </div>
+        <button id="applyRange">✅ Terapkan Rentang</button>
+        <button id="resetRange" class="btn-danger">🗑️ Hapus Rentang</button>
+    </div>
+
+    <!-- Toolbar klik langsung -->
+    <div class="toolbar no-print">
+        <span style="font-weight:600; margin-right:6px;">Mode Klik:</span>
+        <button id="modeC" class="btn active-tool" data-mode="C"><span class="color-dot cerah"></span> Cerah (C)</button>
+        <button id="modeB" class="btn" data-mode="B"><span class="color-dot berawan"></span> Berawan (B)</button>
+        <button id="modeG" class="btn" data-mode="G"><span class="color-dot gerimis"></span> Gerimis (G)</button>
+        <button id="modeH" class="btn" data-mode="H"><span class="color-dot hujan"></span> Hujan (H)</button>
+        <span class="divider"></span>
+        <button id="modeHapus" class="btn" data-mode="hapus">🧹 Hapus Sel</button>
+        <span class="divider"></span>
+        <button id="resetAll" class="btn btn-danger" style="color:#b91c1c;">🔄 Reset Semua</button>
+        <button id="cetakBtn" class="btn" style="margin-left:auto;">🖨️ Cetak / PDF</button>
+    </div>
+
+    <!-- Statistik -->
+    <div class="stats no-print" id="statsContainer">
+        <strong>Statistik:</strong> <span id="statCerah">C: 0 hari</span> |
+        <span id="statBerawan">B: 0 hari</span> |
+        <span id="statGerimis">G: 0 hari</span> |
+        <span id="statHujan">H: 0 hari</span>
+        <span class="saved-indicator" id="savedIndicator">💾 Tersimpan</span>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="weatherTable">
+            <thead>
+                <tr>
+                    <th>Tgl</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="legenda">
+        <strong>Keterangan:</strong>
+        <span><span class="color-dot cerah"></span> C = Cerah</span>
+        <span><span class="color-dot berawan"></span> B = Berawan</span>
+        <span><span class="color-dot gerimis"></span> G = Gerimis</span>
+        <span><span class="color-dot hujan"></span> H = Hujan</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const HOURS = 24;
+        const NAMA_BULAN = ['', 'Januari','Februari','Maret','April','Mei','Juni',
+                           'Juli','Agustus','September','Oktober','November','Desember'];
+
+        // DOM
+        const pilihBulan = document.getElementById('pilihBulan');
+        const inputTahun = document.getElementById('inputTahun');
+        const judulBulan = document.getElementById('judulBulan');
+        const judulTahun = document.getElementById('judulTahun');
+        const tableHead = document.querySelector('#weatherTable thead tr');
+        const tableBody = document.querySelector('#weatherTable tbody');
+        const rangeTanggalSelect = document.getElementById('rangeTanggal');
+        const rangeJamMulai = document.getElementById('rangeJamMulai');
+        const rangeJamSelesai = document.getElementById('rangeJamSelesai');
+        const applyRangeBtn = document.getElementById('applyRange');
+        const resetRangeBtn = document.getElementById('resetRange');
+        const modeButtons = {
+            C: document.getElementById('modeC'),
+            B: document.getElementById('modeB'),
+            G: document.getElementById('modeG'),
+            H: document.getElementById('modeH'),
+            hapus: document.getElementById('modeHapus')
+        };
+        const resetAllBtn = document.getElementById('resetAll');
+        const cetakBtn = document.getElementById('cetakBtn');
+        const savedIndicator = document.getElementById('savedIndicator');
+
+        // State
+        let currentMonth = parseInt(pilihBulan.value);
+        let currentYear = parseInt(inputTahun.value);
+        let daysInMonth = getDaysInMonth(currentYear, currentMonth);
+        let weatherData = [];
+        let currentMode = 'C';
+
+        // Fungsi bantu
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate(); // month 0-based dalam Date
+        }
+
+        function getStorageKey(year, month) {
+            return `cuaca_${year}_${month}`;
+        }
+
+        function loadDataForMonth(year, month) {
+            const key = getStorageKey(year, month);
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {}
+            }
+            // Data baru kosong
+            const days = getDaysInMonth(year, month);
+            return Array.from({ length: days }, () => Array(HOURS).fill(''));
+        }
+
+        function saveData() {
+            const key = getStorageKey(currentYear, currentMonth);
+            localStorage.setItem(key, JSON.stringify(weatherData));
+            showSavedIndicator();
+        }
+
+        function showSavedIndicator() {
+            savedIndicator.classList.add('show');
+            clearTimeout(savedIndicator._timeout);
+            savedIndicator._timeout = setTimeout(() => {
+                savedIndicator.classList.remove('show');
+            }, 1200);
+        }
+
+        // Perbarui tampilan bulan/tahun
+        function updateHeaderAndStructure() {
+            judulBulan.textContent = `Bulan: ${NAMA_BULAN[currentMonth].toUpperCase()}`;
+            judulTahun.textContent = `Tahun: ${currentYear}`;
+            daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            weatherData = loadDataForMonth(currentYear, currentMonth);
+            // Pastikan panjang array sesuai (jika data tersimpan mungkin kurang)
+            if (weatherData.length !== daysInMonth) {
+                const newData = Array.from({ length: daysInMonth }, (_, i) => 
+                    i < weatherData.length ? weatherData[i] : Array(HOURS).fill('')
+                );
+                weatherData = newData;
+                saveData();
+            }
+            initRangeTanggalSelect();
+            renderTable();
+        }
+
+        function initTableHeader() {
+            let headerHTML = '<th>Tgl</th>';
+            for (let h = 0; h < HOURS; h++) {
+                headerHTML += `<th>${h}</th>`;
+            }
+            tableHead.innerHTML = headerHTML;
+        }
+
+        function renderTable() {
+            let html = '';
+            for (let day = 0; day < daysInMonth; day++) {
+                html += `<tr>`;
+                html += `<td style="font-weight:600; background:#f8fafc;">${day + 1}</td>`;
+                for (let hour = 0; hour < HOURS; hour++) {
+                    const val = weatherData[day] ? weatherData[day][hour] : '';
+                    const display = val || '';
+                    const cuacaAttr = val ? `data-cuaca="${val}"` : '';
+                    const classEmpty = !val ? 'empty' : '';
+                    html += `<td class="weather-cell ${classEmpty}" data-day="${day}" data-hour="${hour}" ${cuacaAttr}>${display}</td>`;
+                }
+                html += `</tr>`;
+            }
+            tableBody.innerHTML = html;
+
+            document.querySelectorAll('.weather-cell').forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+
+            updateStats();
+        }
+
+        function handleCellClick(e) {
+            const cell = e.currentTarget;
+            const day = parseInt(cell.dataset.day);
+            const hour = parseInt(cell.dataset.hour);
+
+            if (!weatherData[day]) weatherData[day] = Array(HOURS).fill('');
+            if (currentMode === 'hapus') {
+                weatherData[day][hour] = '';
+            } else {
+                weatherData[day][hour] = currentMode;
+            }
+            saveData();
+            renderTable();
+        }
+
+        function setActiveModeButton(mode) {
+            Object.keys(modeButtons).forEach(key => {
+                modeButtons[key].classList.toggle('active-tool', key === mode);
+            });
+            currentMode = mode;
+        }
+
+        function initRangeTanggalSelect() {
+            rangeTanggalSelect.innerHTML = '';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const opt = document.createElement('option');
+                opt.value = d - 1;
+                opt.textContent = d;
+                rangeTanggalSelect.appendChild(opt);
+            }
+            rangeTanggalSelect.value = '0';
+        }
+
+        function initJamSelects() {
+            rangeJamMulai.innerHTML = '';
+            rangeJamSelesai.innerHTML = '';
+            for (let h = 0; h < HOURS; h++) {
+                const optStart = document.createElement('option');
+                optStart.value = h;
+                optStart.textContent = h;
+                rangeJamMulai.appendChild(optStart);
+
+                const optEnd = document.createElement('option');
+                optEnd.value = h;
+                optEnd.textContent = h;
+                rangeJamSelesai.appendChild(optEnd);
+            }
+            rangeJamMulai.value = 0;
+            rangeJamSelesai.value = 23;
+        }
+
+        function applyRange() {
+            const dayIndex = parseInt(rangeTanggalSelect.value);
+            const startHour = parseInt(rangeJamMulai.value);
+            const endHour = parseInt(rangeJamSelesai.value);
+            const cuaca = document.getElementById('rangeCuaca').value;
+
+            const from = Math.min(startHour, endHour);
+            const to = Math.max(startHour, endHour);
+
+            if (!weatherData[dayIndex]) weatherData[dayIndex] = Array(HOURS).fill('');
+            for (let h = from; h <= to; h++) {
+                weatherData[dayIndex][h] = cuaca;
+            }
+            saveData();
+            renderTable();
+        }
+
+        function resetRange() {
+            const dayIndex = parseInt(rangeTanggalSelect.value);
+            const startHour = parseInt(rangeJamMulai.value);
+            const endHour = parseInt(rangeJamSelesai.value);
+
+            const from = Math.min(startHour, endHour);
+            const to = Math.max(startHour, endHour);
+
+            if (!weatherData[dayIndex]) return;
+            for (let h = from; h <= to; h++) {
+                weatherData[dayIndex][h] = '';
+            }
+            saveData();
+            renderTable();
+        }
+
+        function resetAllData() {
+            if (confirm(`Hapus seluruh data cuaca untuk ${NAMA_BULAN[currentMonth]} ${currentYear}?`)) {
+                weatherData = Array.from({ length: daysInMonth }, () => Array(HOURS).fill(''));
+                saveData();
+                renderTable();
+            }
+        }
+
+        function updateStats() {
+            let countC = 0, countB = 0, countG = 0, countH = 0;
+            for (let d = 0; d < daysInMonth; d++) {
+                let hasC = false, hasB = false, hasG = false, hasH = false;
+                for (let h = 0; h < HOURS; h++) {
+                    const val = weatherData[d] ? weatherData[d][h] : '';
+                    if (val === 'C') hasC = true;
+                    if (val === 'B') hasB = true;
+                    if (val === 'G') hasG = true;
+                    if (val === 'H') hasH = true;
+                }
+                if (hasC) countC++;
+                if (hasB) countB++;
+                if (hasG) countG++;
+                if (hasH) countH++;
+            }
+            document.getElementById('statCerah').textContent = `C: ${countC} hari`;
+            document.getElementById('statBerawan').textContent = `B: ${countB} hari`;
+            document.getElementById('statGerimis').textContent = `G: ${countG} hari`;
+            document.getElementById('statHujan').textContent = `H: ${countH} hari`;
+        }
+
+        // Event: ganti bulan/tahun
+        pilihBulan.addEventListener('change', () => {
+            currentMonth = parseInt(pilihBulan.value);
+            updateHeaderAndStructure();
+        });
+        inputTahun.addEventListener('change', () => {
+            currentYear = parseInt(inputTahun.value);
+            if (isNaN(currentYear) || currentYear < 2000) currentYear = 2026;
+            updateHeaderAndStructure();
+        });
+
+        // Mode klik
+        Object.entries(modeButtons).forEach(([mode, btn]) => {
+            btn.addEventListener('click', () => setActiveModeButton(mode));
+        });
+
+        // Rentang
+        applyRangeBtn.addEventListener('click', applyRange);
+        resetRangeBtn.addEventListener('click', resetRange);
+        resetAllBtn.addEventListener('click', resetAllData);
+        cetakBtn.addEventListener('click', () => window.print());
+
+        // Inisialisasi awal
+        initTableHeader();
+        initJamSelects();
+        updateHeaderAndStructure(); // akan memuat data Mei 2026
+        setActiveModeButton('C');
+    })();
+</script>
+</body>
+</html>
